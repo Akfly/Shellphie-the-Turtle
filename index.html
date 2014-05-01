@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Game</title>
+<style>
+body
+{
+	margin:0;
+}
+canvas
+{
+    image-rendering: optimizeSpeed;             // Older versions of FF
+    image-rendering: -moz-crisp-edges;          // FF 6.0+
+    image-rendering: -webkit-optimize-contrast; // Webkit
+                                                //  (Safari now, Chrome soon)
+    image-rendering: -o-crisp-edges;            // OS X & Windows Opera (12.02+)
+    image-rendering: optimize-contrast;         // Possible future browsers.
+    -ms-interpolation-mode: nearest-neighbor;   // IE
+	image-rendering: crisp-edges;
+	margin:0;
+}
+
+@font-face {
+    font-family: 'oab';
+    src:url(assets/04B_03__.TTF);
+}
+
+</style>
+
+<script type="text/javascript" src="player.js"></script>
+<script type="text/javascript" src="switchbutton.js"></script>
+<script type="text/javascript" src="retrybutton.js"></script>
+<script type="text/javascript" src="volumebutton.js"></script>
+<script type="text/javascript" src="returnbutton.js"></script>
+<script type="text/javascript" src="menubutton.js"></script>
+<script type="text/javascript" src="projectile.js"></script>
+<script type="text/javascript" src="background.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+</head>
+
+<body>
+    <canvas id="leccionCanvas" width="10" height="10"></canvas>
+	
+	<audio id="backgroundMusic" loop>
+	  <source src="assets/Ouroboros_8bit22.wav" type="audio/wav">
+	</audio>
+	
+	<audio id="buttonSound">
+	  <source src="assets/b3.wav" type="audio/wav">
+	</audio>
+	
+	<audio id="collisionSound">
+	  <source src="assets/b2.wav" type="audio/wav">
+	</audio>
+</body>
+</html>
