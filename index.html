@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -36,15 +36,657 @@ canvas
 <script type="text/javascript" src="menubutton.js"></script>
 <script type="text/javascript" src="projectile.js"></script>
 <script type="text/javascript" src="background.js"></script>
-<script type="text/javascript" src="main.js"></script>
 
+<script type="text/javascript">
+
+//Avoid blank screen :S
+document.addEventListener('deviceready', function() {
+  navigator.splashscreen.hide();
+});
+
+	AppState = 
+	{
+		LOGO : 0,
+		MENU : 1,
+		GAME : 2
+	}
+	
+	actualAppState = AppState.MENU;
+	
+	var canvas;
+	var ctx;
+	
+	var screen_width = window.innerWidth;
+	var screen_height = window.innerHeight;
+
+	//Detects if the screen is wider, if so, we resize it
+	var bWidthGreater = false;
+	if (screen_width > screen_height)
+	{
+		screen_width = (screen_height * 10) / 16;
+		bWidthGreater = true;
+	}
+	
+	var player;
+	var switch_b;
+	var retry_b;
+	var return_b;
+	var volume_b;
+	
+	var volume_bMenuX;
+	var volume_bMenuY;
+	var volume_bGameX;
+	var volume_bGameY;
+	
+	var sky;
+	
+	var redbullet;
+	var blubullet;
+	var redbullet2;
+	var blubullet2;
+	
+	var scoreTextImage;
+	
+	var projectiles = [];
+	var createBulletID;
+	
+	var previousDate;
+	var deltaTime = 0;
+	
+	var score = 0;
+	
+	var isGameOver = false;
+	
+	var mouse_pressed = false;
+	var mouse_x = 0;
+	var mouse_y = 0;
+	
+	var tutorialImage;
+	var menuBGImg;
+	var soundEnabled = true;
+	var bShowCredits = false;
+	var bShowTutorial = false;
+	
+	//MENU
+	
+	var titleSprite;
+	           
+	var menu_play;
+	var menu_help;
+	var menu_credits;
+	var menu_exit;
+	
+	//SOUND
+	var music;
+	var buttonSound;
+	var collisionSound;
+	
+	var width_offset = 0;
+	
+	//Initialize all vars
+	function setup()
+	{
+		previousDate = Date.now();
+		canvas = document.getElementById('leccionCanvas');
+		canvas.width = screen_width;
+		canvas.height = screen_height;
+		
+		//center the canvas
+		if (bWidthGreater)
+		{
+			width_offset = ((window.innerWidth / 2) - (screen_width / 2));
+			canvas.style.marginLeft = "" + width_offset + "px";
+			//screen_width += width_offset;
+		}
+		
+		var offsetWidth = screen_width + width_offset;
+		
+		player        = new Player      (screen_width/2, screen_height/1.777, screen_width, screen_height);
+		switch_b      = new SwitchButton(screen_width,   screen_height);
+		retry_b       = new RetryButton (screen_width,   screen_height);
+		return_b      = new ReturnButton(screen_width,   screen_height);
+		volume_b      = new VolumeButton(screen_width,   screen_height, 20, 20);
+		
+		volume_bMenuX = screen_width - 20 - volume_b.width;
+		volume_bMenuY = screen_height - 20 - volume_b.height;
+		volume_bGameX = 20;
+		volume_bGameY = 20;
+		
+		sky           = new Sky(screen_width, screen_height);
+		
+		//                                 X                                               Y                     WIDTH               HEIGHT              SPRITE W/H
+		menu_play    = new MenuButton((screen_width / 2) - ((screen_width * 0.7) / 2), screen_height / 3.1,  screen_width * 0.7, screen_height * 0.15, 100, 33);
+		menu_help    = new MenuButton((screen_width / 2) - (screen_width * 0.4   / 2), screen_height * 0.5,  screen_width * 0.4, screen_height * 0.1,  71,  24);
+		menu_credits = new MenuButton((screen_width / 2) - (screen_width * 0.4   / 2), screen_height * 0.61, screen_width * 0.4, screen_height * 0.1,  71,  24);
+		menu_exit    = new MenuButton((screen_width / 2) - (screen_width * 0.4   / 2), screen_height * 0.72, screen_width * 0.4, screen_height * 0.1,  71,  24);
+		
+		if (canvas.getContext)
+		{
+			ctx = canvas.getContext('2d');
+			
+			//Nearest-Neighbor
+			ctx.imageSmoothingEnabled = false;
+			ctx.webkitImageSmoothingEnabled = false;
+			ctx.mozImageSmoothingEnabled = false;
+			
+			canvas.style.imageRendering = '-moz-crisp-edges';
+			canvas.style.imageRendering = '-o-crisp-edges';
+			canvas.style.imageRendering = '-webkit-optimize-contrast';
+			canvas.style.imageRendering = 'crisp-edges';
+			canvas.style.imageRendering = 'optimizeSpeed';
+			canvas.style.imageRendering = 'optimize-contrast';
+			canvas.style.msInterpolationMode = 'nearest-neighbor';
+			
+			//Load sprites
+			player.loadSprite();
+			switch_b.loadSprite();
+			retry_b.loadSprite();
+			volume_b.loadSprite();
+			volume_b.active = false;
+			return_b.loadSprite();
+			sky.loadSprite();
+			
+			menuBGImg = new Image();
+			menuBGImg.src = 'assets/sprites/menubg.png';
+			
+			titleSprite = new Image();
+			titleSprite.src = 'assets/sprites/title.png';
+			
+			menu_play.setSprite('assets/sprites/playbutton.png');
+			menu_help.setSprite('assets/sprites/helpbutton.png');
+			menu_credits.setSprite('assets/sprites/creditsbutton.png');
+			menu_exit.setSprite('assets/sprites/exitbutton.png');
+			
+			redbullet = new Image();
+			redbullet.src = 'assets/sprites/firered1.png';
+			redbullet2 = new Image();
+			redbullet2.src = 'assets/sprites/firered2.png';
+			
+			blubullet = new Image();
+			blubullet.src = 'assets/sprites/fireblu1.png';	
+			blubullet2 = new Image();
+			blubullet2.src = 'assets/sprites/fireblu2.png';
+			
+			scoreTextImage = new Image();
+			scoreTextImage.src = 'assets/sprites/scoretext.png';
+			
+			tutorialImage = new Image();
+			tutorialImage.src = 'assets/sprites/tutorial.png';
+			
+			music          = document.getElementById("backgroundMusic");
+			buttonSound    = document.getElementById("buttonSound");
+			collisionSound = document.getElementById("collisionSound");
+			
+			canvas.addEventListener("mousedown", getMousePosition, false);
+			canvas.addEventListener("mouseup",   mouseUp,          false);
+			canvas.addEventListener("mousemove", mouseMove,        false);
+		}
+		
+		//Sound enable
+		volume_b.active = true;
+		volume_b.x = volume_bMenuX;
+		volume_b.y = volume_bMenuY;
+		return_b.active = false;
+		
+		if(soundEnabled)
+		{
+			music.play();
+		}
+		
+		main();
+    }
+	
+	//Core Loop
+	function main()
+	{
+		requestAnimationFrame(main);
+		
+		update();
+		draw();
+	}
+	
+	////////////////////////////////////////////////
+	//UPDATE FUNCTIONS
+	////////////////////////////////////////////////
+	
+	//Called every frame. Calcs here.
+	function update()
+	{
+		updateDelta();
+		
+		switch(actualAppState)
+		{
+			case AppState.LOGO:
+			break;
+			
+			case AppState.MENU:
+			break;
+			
+			case AppState.GAME:
+				gameUpdate();
+			break;
+		}
+	}
+	
+	//Calculates the time between each frame.
+	function updateDelta()
+	{
+		var now      = Date.now();
+		deltaTime    = (now - previousDate) / 1000;
+		previousDate = now;
+	}
+	
+	//Update called when the Game State is in GAME
+	function gameUpdate()
+	{
+		sky.update(deltaTime);
+		
+		if(!isGameOver)
+		{
+			GamePlayUpdate();
+		}
+	}
+	
+	//In-Game Update
+	function GamePlayUpdate()
+	{
+		player.update(deltaTime);
+		switch_b.update(mouse_x, mouse_y, mouse_pressed);
+		
+		//Update Projectiles
+		for(var i in projectiles)
+		{
+			projectiles[i].update(deltaTime);
+			
+			if(projectiles[i].checkCollision(player.y))
+			{
+				if(projectiles[i].Color != player.actualColor)
+				{
+					//Different Color: GAME OVER
+					window.clearInterval(createBulletID);
+					isGameOver = true;
+					volume_b.active = true;
+					return_b.active = true;
+				}
+				else
+				{
+					//Same Color, Score++
+					score++;
+					if(soundEnabled)
+					{
+						collisionSound.play();
+					}
+				}
+			}
+		}
+		
+		//Remove unnecessary bullets
+		projectiles = projectiles.filter
+		(
+			function(bullet)
+			{
+				return((!bullet.checkCollision(player.y)) && !isGameOver);
+			}
+		);
+	}
+	
+	////////////////////////////////////////////////
+	//DRAW FUNCTIONS
+	////////////////////////////////////////////////
+	
+	function draw()
+	{
+		switch(actualAppState)
+		{
+			case AppState.LOGO:
+				logoDraw();
+			break;
+			
+			case AppState.MENU:
+				menuDraw();
+			break;
+			
+			case AppState.GAME:
+				gameDraw();
+			break;
+		}
+	}
+	
+	function logoDraw()
+	{
+		//Supposedly draw a logo here. Never called nor implemented :(
+	}
+	
+	//Draws the Game Menu
+	function menuDraw()
+	{	
+		//Draw Background and title
+		ctx.drawImage(menuBGImg,   0,0, 600, 800, 0, 0, screen_width, screen_height);
+		ctx.drawImage(titleSprite, 0,0, 119, 43, (screen_width/2) - (screen_width*0.9)/2, screen_height/15, screen_width*0.9, screen_height*0.22);
+		
+		//Buttons draw
+		   menu_play.draw(ctx);
+		   menu_help.draw(ctx);
+		menu_credits.draw(ctx);
+		   menu_exit.draw(ctx);
+		    volume_b.draw(ctx);
+		
+		//Check overlay draws
+		if(bShowCredits)
+		{
+			creditsDraw();
+		}
+		else if(bShowTutorial)
+		{
+			tutorialDraw();
+		}
+	}
+	
+	//Draws ingame credits
+	function creditsDraw()
+	{
+		//Draw background
+		ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+		ctx.fillRect(0,0,screen_width, screen_height);
+		
+		//Prepare font
+		ctx.fillStyle = "#ffffff";
+		var fontsize  = (screen_height *0.04);
+		ctx.font      = fontsize + "px oab";
+		ctx.textAlign = "center";
+		var center_pos = screen_width / 2;
+		
+		//Draw the text
+		//           Text                           Position          Line
+		ctx.fillText("DESIGN:",                     center_pos, fontsize     );
+		ctx.fillText("Luis Gomez",                  center_pos, fontsize * 2 );
+		                                                                           
+		ctx.fillText("PROGRAM AND GRAPHICS:",       center_pos, fontsize * 4 );
+		ctx.fillText("Ruben Negredo",               center_pos, fontsize * 5 );
+		                                                                           
+		ctx.fillText("SOUND:",                      center_pos, fontsize * 7 );
+		ctx.fillText("\"Ouroboros\" Kevin MacLeod", center_pos, fontsize * 8 );
+		ctx.fillText("(incompetech.com)",           center_pos, fontsize * 9 );
+		ctx.fillText("Licensed under",              center_pos, fontsize * 10);
+		ctx.fillText("Creative Commons:",           center_pos, fontsize * 11);
+		ctx.fillText("By Attribution 3.0",          center_pos, fontsize * 12);
+		ctx.fillText("http://creativecommons.org/", center_pos, fontsize * 13);
+		ctx.fillText("licenses/by/3.0/",            center_pos, fontsize * 14);
+	}
+	
+	//Draws a little guide
+	function tutorialDraw()
+	{
+		ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+		ctx.fillRect(0,0,screen_width, screen_height);
+		ctx.drawImage(tutorialImage, 0, 0, 600, 800, 0, 0, screen_width, screen_height);
+	}
+	
+	//Draw the game items
+	function gameDraw()
+	{
+		sky.draw(ctx);
+		
+		for(var i in projectiles)
+		{
+			projectiles[i].draw(ctx);
+		}
+		
+		player.draw(ctx);
+		switch_b.draw(ctx);
+		
+		drawScore();
+		
+		if(isGameOver)
+		{
+			drawGameOver();
+		}
+		
+		volume_b.draw(ctx);
+	}
+	
+	//Draws the score at the top of the screen
+	function drawScore()
+	{
+		ctx.font=(screen_height * 0.05) + "px oab";
+		
+		ctx.fillStyle = "#ffffff";
+		ctx.fillText(""+score, screen_width * 0.916, screen_height * 0.0375);
+	}
+	
+	//Draws the game over screen
+	function drawGameOver()
+	{
+		var screen_center = screen_width / 2;
+		
+		//Create a dark background
+		ctx.fillStyle = ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+		ctx.fillRect(0, 0, screen_width, screen_height );
+		
+		//You Lose Text
+		ctx.font      ="bold " + (screen_height * 0.05) + "px oab";
+		ctx.fillStyle = "#dd0000";
+		ctx.textAlign ="center";
+		ctx.fillText("YOU LOSE!", screen_center, screen_height * 0.0625);
+		
+		//Score Title
+		ctx.drawImage(scoreTextImage, 0, 0, 93, 22, (screen_width - (screen_width * 0.465))/2, screen_height * 0.125, screen_width * 0.465, screen_height * 0.0825);
+		
+		//Draws the score. Repeated because we have a white score and a shadow behind it
+		ctx.font      ="bold " + (screen_height * 0.1875) + "px oab";
+		
+		ctx.fillStyle = "#000000";
+		ctx.fillText("" + score, (screen_center) + (screen_width * 0.0083), screen_height * 0.38125);
+		
+		ctx.fillStyle = "#ffffff";
+		ctx.fillText("" + score, screen_center, screen_height * 0.375);
+		
+		//Buttons draw
+		 retry_b.draw(ctx);
+		return_b.draw(ctx);
+	}
+	
+	////////////////////////////////////////////////
+	//UTILS
+	////////////////////////////////////////////////
+	
+	//Adds a bullet to the array
+	function createBullet()
+	{
+		var d = Math.floor((Math.random()*2)+1);
+		
+		if(d == 1)
+		{
+			projectiles.push(new Bullet(screen_width, screen_height, "r", redbullet, redbullet2, screen_height * 1.1));
+		}
+		else
+		{
+			projectiles.push(new Bullet(screen_width, screen_height, "b", blubullet, blubullet2, screen_height * 1.1));
+		}
+	}
+	
+	////////////////////////////////////////////////
+	//EVENTS
+	////////////////////////////////////////////////
+	
+	function mouseUp(e)
+	{
+		mouse_pressed = false;
+	}
+	
+	function mouseMove(e)
+	{
+		if (e.pageX || e.pageY)
+		{
+		  mouse_x = e.pageX;
+		  mouse_y = e.pageY;
+		}
+	}
+	
+	function getMousePosition(e)
+	{
+		//Menu overlays
+		if(bShowCredits)
+		{
+			bShowCredits = false;
+			return;
+		}
+		if(bShowTutorial)
+		{
+			bShowTutorial = false;
+			return;
+		}
+		
+		mouse_pressed = true;
+		
+		//Get mouse position
+		var x;
+		var y;
+		if (e.pageX || e.pageY)
+		{
+		  x = e.pageX - width_offset;
+		  y = e.pageY;
+		}
+		
+		//Sound Button Action
+		if(volume_b.checkMouseCollision(x, y))
+		{
+			soundEnabled = !soundEnabled;
+			volume_b.soundOn = soundEnabled;
+			
+			if(soundEnabled)
+			{
+				music.play();
+			}
+			else
+			{
+				music.pause();
+				music.currentTime = 0;
+			}
+		}
+		
+		//Gameplay or Game Over Actions
+		if(actualAppState == AppState.GAME)
+		{
+			if(!isGameOver)
+			{
+				MouseGamePlay(x, y);
+			}
+			else
+			{
+				MouseGameOver(x, y);
+			}
+		}
+		//Menu Actions
+		else if(actualAppState == AppState.MENU)
+		{
+			//Play Button Actions. Starts the game!
+			if(menu_play.checkMouseCollision(x, y))
+			{
+				volume_b.x = volume_bGameX;
+				volume_b.y = volume_bGameY;
+				
+				actualAppState = AppState.GAME;
+				
+				//Initialize bullets
+				createBulletID = window.setInterval( "createBullet()", 400 );
+				createBullet();
+				
+				isGameOver      = false;
+				volume_b.active = false;
+				score           = 0;
+				
+				player.switchShield("r");
+				
+				if(soundEnabled)
+				{
+					buttonSound.play();
+				}
+				
+			}
+			//Show Help Menu
+			else if(menu_help.checkMouseCollision(x, y))
+			{
+				bShowTutorial = true;
+				if(soundEnabled)
+				{
+					buttonSound.play();
+				}
+			}
+			//Show Credits
+			else if(menu_credits.checkMouseCollision(x, y))
+			{
+				bShowCredits = true;
+				if(soundEnabled)
+				{
+					buttonSound.play();
+				}
+			}
+			//Leave App
+			else if(menu_exit.checkMouseCollision(x, y))
+			{
+				window.close();
+			}
+		}
+	}
+	
+	//Mouse actions during Gameplay
+	function MouseGamePlay(x, y)
+	{
+		//If the mouse presses the switch button
+		if(switch_b.checkMouseCollision(x, y))
+		{
+			if(player.actualColor == "r")
+			{
+				player.switchShield("b");
+			}
+			else
+			{
+				player.switchShield("r");
+			}
+		}
+	}
+	
+	//Mouse actions on Game Over
+	function MouseGameOver(x, y)
+	{
+		//If Play Again button is pressed
+		if(retry_b.checkMouseCollision(x, y))
+		{
+			//play again, reset initializing variables
+			isGameOver      = false;
+			volume_b.active = false;
+			return_b.active = false;
+			score           = 0;
+			createBulletID  = window.setInterval( "createBullet()", 400 );
+			player.switchShield("r");
+			
+			if(soundEnabled)
+			{
+				buttonSound.play();
+			}
+		}
+		//Go back to main menu
+		else if(return_b.checkMouseCollision(x, y))
+		{
+			actualAppState = AppState.MENU;
+			volume_b.x     = volume_bMenuX;
+			volume_b.y     = volume_bMenuY;
+			
+			if(soundEnabled)
+			{
+				buttonSound.play();
+			}
+		}
+	}
+</script>
 </head>
 
-<body>
-    <canvas id="leccionCanvas" width="10" height="10"></canvas>
+<body onload="setup();">
+    <canvas id="leccionCanvas" width="10" height="10"style="margin:0px;"></canvas>
 	
 	<audio id="backgroundMusic" loop>
-	  <source src="assets/Ouroboros_8bit22.wav" type="audio/wav">
+	  <source src="assets/Ouroboros.mp3" type="audio/wav">
 	</audio>
 	
 	<audio id="buttonSound">
